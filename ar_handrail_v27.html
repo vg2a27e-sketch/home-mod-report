@@ -2,327 +2,153 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Home Modification Report Builder</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"/>
+<title>Grab Bar AR Planner</title>
 <style>
 
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0d0d14;--surface:#16161f;--surface2:#1e1e2a;--border:rgba(255,255,255,0.10);
-  --accent:#FFD60A;--green:#30D158;--red:#FF453A;--blue:#0A84FF;
-  --text:#f0f0f5;--text2:rgba(240,240,245,0.60);--radius:14px;
-  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-}
-body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,sans-serif;-webkit-user-select:none;user-select:none}
+#vid{position:fixed;top:0;left:0;width:100vw;height:100vh;object-fit:cover;z-index:0}
+#canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:1;touch-action:none}
+#ann-layer{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2;pointer-events:none;cursor:default}
+#ann-layer.drawing{pointer-events:all;cursor:crosshair}
+#splash{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(0,0,0,0.80);padding:32px}
+#splash h1{color:#fff;font-size:22px;font-weight:800;text-align:center}
+#splash p{color:rgba(255,255,255,0.6);font-size:13px;text-align:center;max-width:300px;line-height:1.6}
+#splash .warn{color:#ffd60a;font-size:12px;text-align:center;max-width:300px;line-height:1.5;background:rgba(255,214,10,0.12);border:1px solid rgba(255,214,10,0.3);border-radius:10px;padding:10px 14px}
+#start-btn{padding:16px 50px;background:#007aff;color:#fff;font-size:18px;font-weight:700;border:none;border-radius:32px;cursor:pointer;box-shadow:0 4px 24px rgba(0,122,255,0.5);position:relative;z-index:51}
+#start-btn:disabled{opacity:0.5}
+#hud{position:fixed;top:0;left:0;right:0;z-index:10;display:none;flex-direction:row;align-items:center;justify-content:space-between;padding:12px 14px 0;gap:6px}
+.badge{background:rgba(0,0,0,0.55);color:#fff;font-size:10px;padding:5px 10px;border-radius:14px;backdrop-filter:blur(6px);line-height:1.5;flex:1}
+.hud-btn{padding:7px 11px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;border:1px solid rgba(255,255,255,0.28);border-radius:16px;cursor:pointer;white-space:nowrap}
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:60;background:rgba(0,0,0,0.78);color:#fff;font-size:13px;padding:8px 18px;border-radius:20px;backdrop-filter:blur(8px);opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
+#toolbar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:none;flex-direction:column;background:rgba(10,10,16,0.93);backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,0.1);padding:10px 14px 32px;gap:9px}
+.tb-row{display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
+#type-sel{flex:1;min-width:0;padding:9px 8px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:11px;font-size:12px;font-weight:600;-webkit-appearance:none;appearance:none;cursor:pointer}
+#type-sel option{background:#1c1c1e;color:#fff}
+.tb-btn{padding:9px 13px;border:none;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+#add-btn{background:#30d158;color:#fff}
+#del-btn{background:#ff3b30;color:#fff}
+#del-btn:disabled{opacity:0.35}
+.finish-row{display:flex;align-items:center;gap:7px}
+.finish-label{color:rgba(255,255,255,0.45);font-size:11px;white-space:nowrap}
+.finish-btn{width:26px;height:26px;border-radius:50%;border:3px solid transparent;cursor:pointer;flex-shrink:0}
+.finish-btn.sel{border-color:#fff}
+.finish-btn[data-f="steel"]{background:linear-gradient(135deg,#e4e7ec,#9ea6b4)}
+.finish-btn[data-f="white"]{background:linear-gradient(135deg,#f5f5f5,#ccc)}
+.finish-btn[data-f="black"]{background:linear-gradient(135deg,#2a2a2a,#111)}
+.finish-btn[data-f="gold"]{background:linear-gradient(135deg,#e8c86a,#a07820)}
+.spacer{flex:1}
+#shot-btn{padding:8px 10px;background:rgba(255,255,255,0.14);color:#fff;border:1px solid rgba(255,255,255,0.22);border-radius:11px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+#ann-toolbar{display:none;align-items:center;gap:6px;flex-wrap:wrap}
+.ann-btn{padding:6px 10px;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;background:rgba(255,255,255,0.12);color:#fff;flex-shrink:0}
+.ann-btn.active{background:#ffd60a;color:#000}
+#ann-color{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);cursor:pointer;padding:0;background:none;flex-shrink:0}
+#ann-clear{background:rgba(255,59,48,0.6);color:#fff}
+#text-input-box{position:fixed;z-index:70;display:none;flex-direction:column;gap:8px;background:rgba(20,20,30,0.96);border:1px solid rgba(255,255,255,0.2);border-radius:16px;padding:14px;min-width:220px;backdrop-filter:blur(12px)}
+#text-input-box input{padding:9px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);border-radius:9px;color:#fff;font-size:15px;outline:none}
+#text-input-box input::placeholder{color:rgba(255,255,255,0.35)}
+.tib-row{display:flex;gap:8px}
+#tib-ok{flex:1;padding:9px;background:#007aff;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer}
+#tib-cancel{flex:1;padding:9px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:9px;font-size:14px;cursor:pointer}
+#err-box{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.90);display:none;align-items:center;justify-content:center;padding:24px}
+.err-card{background:#1c1c1e;border-radius:20px;padding:28px 22px;max-width:340px;width:100%;color:#fff}
+.err-icon{font-size:40px;text-align:center;margin-bottom:10px}
+.err-card h2{text-align:center;font-size:20px;margin-bottom:10px}
+#err-name{background:#ff3b30;border-radius:8px;padding:7px 12px;font-size:14px;font-weight:700;text-align:center;margin-bottom:10px}
+#err-msg{font-size:12px;color:rgba(235,235,245,0.65);margin-bottom:14px;word-break:break-word}
+#err-hint{background:#2c2c2e;border-radius:10px;padding:12px;font-size:14px;color:#ffe58f;line-height:1.5}
+#reload-btn{margin-top:18px;width:100%;padding:14px;background:#007aff;color:#fff;font-size:16px;font-weight:700;border:none;border-radius:12px;cursor:pointer}
 
-/* ── NAV ── */
-#nav{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-#nav-title{font-size:15px;font-weight:700;color:var(--accent)}
-#nav-btns{display:flex;gap:8px}
-.nav-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
-.nav-btn:hover,.nav-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
-
-/* ── TABS ── */
-#tabs{display:flex;gap:0;background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto}
-.tab{padding:12px 18px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-
-/* ── MAIN CONTENT ── */
-#main{padding:20px;max-width:900px;margin:0 auto}
-.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px}
-.section-title{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px}
-.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.field-grid.three{grid-template-columns:1fr 1fr 1fr}
-.field-grid.one{grid-template-columns:1fr}
-@media(max-width:520px){.field-grid,.field-grid.three{grid-template-columns:1fr}}
-.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600}
-.field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:.15s}
-.field input:focus,.field select,.field textarea:focus{border-color:var(--accent)}
-.field textarea{resize:vertical;min-height:72px}
-.field select option{background:#1e1e2a}
-
-/* ── RECOMMENDATION CARDS ── */
-.rec-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;position:relative}
-.rec-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.rec-num{background:var(--accent);color:#000;font-size:11px;font-weight:800;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.priority-badge{padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700}
-.priority-badge.high{background:rgba(255,69,58,.2);color:#FF453A;border:1px solid rgba(255,69,58,.4)}
-.priority-badge.medium{background:rgba(255,214,10,.2);color:#FFD60A;border:1px solid rgba(255,214,10,.4)}
-.priority-badge.low{background:rgba(48,209,88,.2);color:#30D158;border:1px solid rgba(48,209,88,.4)}
-.rec-del{margin-left:auto;background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;opacity:.6;transition:.15s;line-height:1}
-.rec-del:hover{opacity:1}
-
-/* ── PHOTO BOX ── */
-.photo-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.photo-slot{width:120px;height:90px;border-radius:10px;border:1.5px dashed var(--border);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--text2);gap:4px;overflow:hidden;flex-shrink:0;position:relative;transition:.15s}
-.photo-slot:hover{border-color:var(--accent)}
-.photo-slot img{width:100%;height:100%;object-fit:cover;border-radius:9px}
-.photo-slot .rm-photo{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.7);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:none;align-items:center;justify-content:center}
-.photo-slot:hover .rm-photo{display:flex}
-.add-photo-btn{width:120px;height:90px;border-radius:10px;border:1.5px dashed var(--border);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--text2);gap:4px;transition:.15s;flex-shrink:0}
-.add-photo-btn:hover{border-color:var(--accent);color:var(--accent)}
-
-/* ── BUTTONS ── */
-.btn{padding:9px 16px;border-radius:20px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
-.btn-primary{background:var(--accent);color:#000}
-.btn-primary:hover{filter:brightness(1.1)}
-.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
-.btn-green{background:rgba(48,209,88,0.85);color:#000}
-.add-rec-row{padding:14px 0 4px}
-
-/* ── PHOTO SOURCE MENU ── */
-#photo-menu{position:fixed;z-index:500;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 16px 48px rgba(0,0,0,.6);display:none;min-width:180px}
-#photo-menu button{display:block;width:100%;padding:10px 14px;text-align:left;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;border-radius:8px;transition:.1s}
-#photo-menu button:hover{background:var(--surface2);color:var(--accent)}
-
-/* ── AR CAMERA MODAL ── */
-#ar-modal{position:fixed;inset:0;z-index:1000;display:none;flex-direction:column;background:#000}
-#ar-modal.open{display:flex}
-#ar-close{position:fixed;top:14px;right:14px;z-index:1020;background:rgba(0,0,0,.7);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
-#ar-use-btn{position:fixed;bottom:180px;left:50%;transform:translateX(-50%);z-index:1020;background:var(--green);color:#000;border:none;padding:12px 28px;border-radius:24px;font-size:15px;font-weight:700;cursor:pointer;display:none;box-shadow:0 6px 24px rgba(48,209,88,.4)}
-
-/* ── PRINT PREVIEW ── */
-#preview-container{background:var(--surface);border-radius:var(--radius);overflow:hidden}
-#preview-frame{width:100%;height:80vh;border:none;border-radius:var(--radius)}
-
-/* ── SUMMARY TABLE ── */
-.sum-table{width:100%;border-collapse:collapse;font-size:12px}
-.sum-table th{background:var(--surface2);padding:8px 10px;text-align:left;font-weight:700;color:var(--accent);border-bottom:1px solid var(--border)}
-.sum-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
-.sum-table tr:last-child td{border-bottom:none}
-
-/* ── PRINT STYLES ── */
-@media print{
-  body{background:#fff;color:#000;font-family:Arial,sans-serif}
-  #nav,#tabs,#ar-modal,#photo-menu,
-  #tab-info,#tab-recs,
-  .no-print,
-  #preview-container > .no-print,
-  #gen-preview-btn,#print-btn2{display:none!important}
-  #tab-preview{display:block!important}
-  #preview-container{border:none!important;background:transparent!important;box-shadow:none!important}
-  .print-report{display:block!important}
-  @page{size:A4;margin:18mm 20mm}
-  .page-break{page-break-before:always}
-  .print-report h1{font-size:18pt;color:#1a1a2e;margin-bottom:4pt}
-  .print-report h2{font-size:13pt;color:#1a1a2e;border-bottom:1.5pt solid #1a1a2e;padding-bottom:3pt;margin:12pt 0 6pt}
-  .print-report h3{font-size:11pt;color:#333;margin:8pt 0 3pt}
-  .print-report table{width:100%;border-collapse:collapse;font-size:9pt}
-  .print-report th{background:#f0f0f5;padding:5pt 7pt;font-weight:bold;border:0.5pt solid #ccc}
-  .print-report td{padding:5pt 7pt;border:0.5pt solid #ccc;vertical-align:top}
-  .print-rec-photo{height:340pt;width:auto;max-width:100%;object-fit:contain;border:0.5pt solid #ccc;border-radius:4pt;display:block;margin:4pt 0}
-  .print-rec-grid{display:grid;grid-template-columns:160pt 1fr;gap:10pt;margin:6pt 0 12pt}
-  .print-priority-high{color:#c0392b;font-weight:bold}
-  .print-priority-medium{color:#d35400;font-weight:bold}
-  .print-priority-low{color:#27ae60;font-weight:bold}
-}
+#cap-btn{padding:7px 12px;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.28);border-radius:16px;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s;}
 
 
-.area-cb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;padding:2px 0}
-.area-cb input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 </style>
 </head>
 <body>
 
-<!-- NAV -->
-<div id="nav">
-  <span id="nav-title">&#x1F3E0; Home Modification Report Builder</span>
-  <div id="nav-btns">
-    <button class="nav-btn" id="save-btn">&#x1F4BE; Save</button>
-    <button class="nav-btn" id="print-btn">&#x1F5A8;&#xFE0F; Print / PDF</button>
+<video id="vid" autoplay playsinline muted></video>
+<canvas id="canvas"></canvas>
+<canvas id="ann-layer"></canvas>
+
+<div id="toast"></div>
+
+<div id="text-input-box">
+  <input id="tib-input" type="text" placeholder="e.g.  600mm  or  42 in" maxlength="30" autocomplete="off"/>
+  <div class="tib-row">
+    <button id="tib-ok">Add Label</button>
+    <button id="tib-cancel">Cancel</button>
   </div>
 </div>
 
-<!-- TABS -->
-<div id="tabs">
-  <div class="tab active" data-tab="info">&#x1F464; Client Info</div>
-  <div class="tab" data-tab="recs">&#x1F4CB; Recommendations</div>
-  <div class="tab" data-tab="preview">&#x1F4C4; Preview &amp; Print</div>
+<div id="splash">
+  <h1>&#x1F6BB; Grab Bar AR Planner</h1>
+  <p>Place accurate 3D grab bars on your wall. Add dimension rulers and labels.</p>
+  <div class="warn" id="https-warn" style="display:none">&#x26A0;&#xFE0F; Must be opened via <strong>HTTPS</strong> for camera.<br/>Upload to <strong>netlify.com</strong> or <strong>tiiny.host</strong> first.</div>
+  <button id="start-btn">&#x25B6;&#xFE0F; Start Camera</button>
+  <p style="font-size:11px;color:rgba(255,255,255,0.25)">Allow camera &amp; motion access when prompted</p>
 </div>
 
-<!-- MAIN CONTENT -->
-<div id="main">
-
-  <!-- ════════ TAB: CLIENT INFO ════════ -->
-  <div id="tab-info">
-
-    <div class="section-card">
-      <div class="section-title">&#x1F3E5; Organisation &amp; Therapist</div>
-      <div class="field-grid">
-        <div class="field"><label>Organisation Name</label><input id="org-name" placeholder="e.g. XXXX Service Centre" /></div>
-        <div class="field"><label>Therapist Name</label><input id="tx-name" placeholder="Full name" /></div>
-        <div class="field"><label>Designation</label><input id="tx-desig" placeholder="e.g. Speech Therapist, OT" /></div>
-        <div class="field"><label>Contact Number</label><input id="tx-contact" type="tel" placeholder="e.g. 9123 4567" /></div>
-        <div class="field"><label>Report Date</label><input id="report-date" type="date" /></div>
-        <div class="field"><label>Visit Date(s)</label><input id="visit-date" type="date" /></div>
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">&#x1F464; Client Information</div>
-      <div class="field-grid">
-        <div class="field"><label>Client Name / ID</label><input id="cl-name" placeholder="Name or case number" /></div>
-        <div class="field"><label>Date of Birth / Age</label><input id="cl-dob" placeholder="e.g. 15/03/1948 (78 y/o)" /></div>
-        <div class="field"><label>Gender</label>
-          <select id="cl-gender"><option value="N/A">N/A</option><option value="">— Select —</option><option>Male</option><option>Female</option><option>Not specified</option></select>
-        </div>
-        <div class="field"><label>Living Situation</label>
-          <select id="cl-living"><option value="N/A">N/A</option><option value="">— Select —</option><option>Alone</option><option>With spouse</option><option>With family</option><option>With carer</option><option>Residential care</option></select>
-        </div>
-        <div class="field"><label>Home Type</label>
-          <select id="cl-home"><option value="N/A">N/A</option><option value="">— Select —</option><option>HK Public Housing (公屋)</option><option>HK Subsidised Housing (居屋)</option><option>Private Flat</option><option>Village House</option><option>Subdivided Unit</option><option>Other</option></select>
-        </div>
-        
-      </div>
-      <div class="field-grid one" style="margin-top:10px">
-        <div class="field"><label>Address</label><input id="cl-addr" placeholder="Full address (optional)" /></div>
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">&#x1FA79; Medical &amp; Functional Status</div>
-      <div class="field-grid">
-        <div class="field"><label>Primary Diagnosis</label><input id="cl-dx" placeholder="e.g. CVA, Parkinson's, Dementia" /></div>
-        <div class="field"><label>Referral Source</label><input id="cl-ref" placeholder="e.g. HA / Social Worker / Self" /></div>
-        <div class="field"><label>Mobility Aid</label>
-          <select id="cl-mob"><option value="N/A">N/A</option><option value="">— Select —</option><option>None</option><option>Walking stick</option><option>Quad stick</option><option>Elbow crutch</option><option>Walking frame / Zimmer</option><option>Rollator</option><option>Wheelchair</option><option>Other</option></select>
-        </div>
-        <div class="field"><label>Transfer Ability</label>
-          <select id="cl-transfer"><option value="N/A">N/A</option><option value="">— Select —</option><option>Independent</option><option>Supervision required</option><option>Minimal assist</option><option>Moderate assist</option><option>Maximal assist</option><option>Dependent</option></select>
-        </div>
-        <div class="field"><label>Balance (sitting)</label>
-          <select id="cl-bal-sit"><option value="N/A">N/A</option><option value="">— Select —</option><option>Good</option><option>Fair</option><option>Poor</option></select>
-        </div>
-        <div class="field"><label>Balance (standing)</label>
-          <select id="cl-bal-stand"><option value="N/A">N/A</option><option value="">— Select —</option><option>Good</option><option>Fair</option><option>Poor</option></select>
-        </div>
-      </div>
-      <div class="field-grid one" style="margin-top:10px">
-        <div class="field"><label>Other Relevant Conditions / Remarks</label><textarea id="cl-remarks" placeholder="e.g. right hemiplegia, cognitive impairment, fear of falling..."></textarea></div>
-        <div class="field"><label>Assessment Purpose</label>
-          <select id="assess-purpose-sel" onchange="togglePurposeOther()">
-            <option value="">&#x2014; Select &#x2014;</option>
-            <option>Fall prevention and home safety assessment</option>
-            <option>Post-hospital discharge home visit</option>
-            <option>Pre-discharge home assessment</option>
-            <option>Ageing-in-place home modification planning</option>
-            <option>Post-stroke home adaptation</option>
-            <option>Cognitive impairment / dementia safety assessment</option>
-            <option>Progressive neurological condition (e.g. Parkinson&#x2019;s disease)</option>
-            <option>Wheelchair / mobility aid fitting and access review</option>
-            <option>Caregiver / family request for home safety review</option>
-            <option>Community care support planning</option>
-            <option>Social worker referral</option>
-            <option>Hospital Authority referral</option>
-            <option value="__other__">Other (please specify)</option>
-          </select>
-          <input id="assess-purpose-other" placeholder="Please specify..." style="margin-top:6px;display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px" />
-        </div>
-        <div class="field"><label>Areas Assessed</label>
-          <div id="areas-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:4px">
-            <label class="area-cb"><input type="checkbox" value="Entrance / Main Door"> Entrance / Main Door</label>
-            <label class="area-cb"><input type="checkbox" value="Corridor / Hallway"> Corridor / Hallway</label>
-            <label class="area-cb"><input type="checkbox" value="Living Room"> Living Room</label>
-            <label class="area-cb"><input type="checkbox" value="Bedroom"> Bedroom</label>
-            <label class="area-cb"><input type="checkbox" value="Bathroom / Shower"> Bathroom / Shower</label>
-            <label class="area-cb"><input type="checkbox" value="Toilet"> Toilet</label>
-            <label class="area-cb"><input type="checkbox" value="Kitchen"> Kitchen</label>
-            <label class="area-cb"><input type="checkbox" value="Staircase / Steps"> Staircase / Steps</label>
-            <label class="area-cb"><input type="checkbox" value="Balcony / Terrace"> Balcony / Terrace</label>
-            <label class="area-cb"><input type="checkbox" id="areas-other-cb" value="__other__"> Others:</label>
-          </div>
-          <input id="areas-other-text" placeholder="Please specify other areas..." style="display:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px" />
-        </div>
-        <div class="field"><label>General Findings Summary</label><textarea id="general-findings" placeholder="Brief overall summary of the home visit findings..."></textarea></div>
-      </div>
-    </div>
-
-  </div><!-- /tab-info -->
-
-  <!-- ════════ TAB: RECOMMENDATIONS ════════ -->
-  <div id="tab-recs" style="display:none">
-
-    <div class="section-card" style="padding:12px 18px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-        <span class="section-title" style="margin:0">Environmental Findings &amp; Recommendations</span>
-        <button class="btn btn-primary" id="add-rec-btn">&#xFF0B; Add Finding</button>
-      </div>
-    </div>
-
-    <div id="rec-list"></div>
-
-    <div class="section-card" style="margin-top:4px">
-      <div class="section-title">&#x1F4CB; Additional Notes</div>
-      <div class="field-grid one">
-        <div class="field"><label>Contractor / Installation Notes</label><textarea id="contractor-notes" placeholder="e.g. All grab rails to be fixed to wall studs or use appropriate anchors. Contractor to verify wall material before installation..."></textarea></div>
-        <div class="field"><label>Follow-up Recommendations</label><textarea id="followup" placeholder="e.g. Re-assessment 4 weeks after installation. Carer training recommended..."></textarea></div>
-        <div class="field"><label>Funding / Subsidy Notes</label><textarea id="funding" placeholder="e.g. Client may be eligible for HKSAR Community Care Fund home modification subsidy. Social worker to liaise with SWD..."></textarea></div>
-        <div class="field"><label>Disclaimer</label><textarea id="disclaimer" style="min-height:56px">This report represents the professional opinion of the attending therapist based on observation during the home visit. Recommendations are subject to structural feasibility and should be reviewed by a qualified contractor prior to installation.</textarea></div>
-      </div>
-    </div>
-
-  </div><!-- /tab-recs -->
-
-  <!-- ════════ TAB: PREVIEW ════════ -->
-  <div id="tab-preview" style="display:none">
-    <div class="section-card no-print">
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <button class="btn btn-primary" id="gen-preview-btn">&#x1F504; Generate Preview</button>
-        <button class="btn btn-green" id="print-btn2">&#x1F5A8;&#xFE0F; Print / Save as PDF</button>
-        <span style="font-size:12px;color:var(--text2)">Tip: In print dialog, select &ldquo;Save as PDF&rdquo; and A4 paper size</span>
-      </div>
-    </div>
-    <div id="preview-container" class="section-card" style="padding:0;overflow:auto">
-      <div id="preview-content" style="padding:28px 32px;background:#fff;color:#111;min-height:400px;font-family:Arial,sans-serif;font-size:12pt">
-        <p style="color:#888;text-align:center;padding:40px 0">Click &ldquo;Generate Preview&rdquo; to render the report</p>
-      </div>
-    </div>
-  </div><!-- /tab-preview -->
-
-</div><!-- /main -->
-
-<!-- ════════ PHOTO SOURCE MENU ════════ -->
-<div id="photo-menu">
-  <button id="pm-camera">&#x1F4F7; AR Camera Capture</button>
-  <button id="pm-upload">&#x1F4C1; Upload Photo</button>
+<div id="hud">
+  <div class="badge">Tap=select &bull; 1 finger=orbit XY &bull; 2 fingers=move/scale &bull; Roll slider=Z rotate &bull; 2&#xD7;tap=fold</div>
+  <button class="hud-btn" id="cap-btn">&#x1F4F7; Capture</button>
+  <button class="hud-btn" id="reset-btn">&#x21BA; Reset</button>
 </div>
-<input type="file" id="file-input" accept="image/*" style="display:none" />
 
-<!-- ════════ AR CAMERA MODAL ════════ -->
-<div id="ar-modal">
-  <button id="ar-close">&#x2715;</button>
-  <!-- AR Canvas layers injected here by JS -->
-  <video id="ar-vid" autoplay playsinline muted style="position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:1001"></video>
-  <canvas id="ar-canvas" style="position:fixed;inset:0;width:100%;height:100%;z-index:1002;touch-action:none"></canvas>
-  <canvas id="ar-ann" style="position:fixed;inset:0;width:100%;height:100%;z-index:1003;pointer-events:none"></canvas>
+<div id="rot-panel" style="position:fixed;right:12px;top:86px;z-index:11;display:none;flex-direction:column;gap:8px;background:rgba(10,10,16,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.13);border-radius:16px;padding:12px 12px 14px;min-width:152px">
+  <div style="color:#ffd60a;font-size:11px;font-weight:700;letter-spacing:.5px;margin-bottom:2px">ROTATE</div>
+  <div style="color:rgba(255,255,255,0.55);font-size:10px;margin-top:-4px">X axis (tilt up/down)</div>
+  <input id="x-rot" type="range" min="-180" max="180" value="0" step="1" style="width:128px;accent-color:#ff453a"/>
+  <div style="color:rgba(255,255,255,0.55);font-size:10px">Y axis (turn left/right)</div>
+  <input id="y-rot" type="range" min="-180" max="180" value="7" step="1" style="width:128px;accent-color:#30d158"/>
+  <div style="color:rgba(255,255,255,0.55);font-size:10px">Z axis (roll)</div>
+  <input id="z-rot" type="range" min="-180" max="180" value="0" step="1" style="width:128px;accent-color:#0a84ff"/>
+  <button class="hud-btn" id="rot-reset" style="padding:6px 10px;font-size:11px;margin-top:2px">&#x21BA; Reset rot</button>
+</div>
+  <input id="z-rot" type="range" min="-180" max="180" value="0" step="1" style="width:118px"/>
+  <button class="hud-btn" id="rot-reset" style="padding:6px 10px;font-size:11px">Reset rot</button>
+</div>
 
-  <!-- AR mini-toolbar -->
-  <div id="ar-hud" style="display:none;position:fixed;bottom:140px;left:50%;transform:translateX(-50%);z-index:1010;display:none;gap:8px;flex-wrap:wrap;justify-content:center">
-    <select id="ar-type-sel" style="padding:8px 12px;border-radius:16px;background:rgba(10,10,16,0.88);color:#fff;border:1px solid rgba(255,255,255,0.2);font-size:13px">
-      <option value="s300">Straight 300mm</option>
-      <option value="s600">Straight 600mm</option>
-      <option value="ubar">U-Bar</option>
+<div id="toolbar">
+  <div class="tb-row">
+    <select id="type-sel">
+      <option value="s300">&#x2796; Straight 300mm</option>
+      <option value="s600">&#x2796; Straight 600mm</option>
+      <option value="ubar">&#x1F504; Drop-Down U-Bar</option>
     </select>
-    <button class="ar-hbtn" id="ar-add-btn">&#xFF0B; Add Bar</button>
-    <button class="ar-hbtn" id="ar-cap-btn">&#x1F4F7; Capture</button>
+    <button class="tb-btn" id="add-btn">&#xFF0B; Add</button>
+    <button class="tb-btn" id="del-btn" disabled>&#x1F5D1;</button>
   </div>
-  <div id="ar-start-overlay" style="position:fixed;inset:0;z-index:1015;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)">
-    <div style="text-align:center">
-      <div style="font-size:48px;margin-bottom:16px">&#x1F4F7;</div>
-      <div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:8px">AR Camera</div>
-      <div style="color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:24px">Place grab bars on a live photo,<br>then add to your report</div>
-      <button class="btn btn-primary" id="ar-start-btn" style="font-size:15px;padding:12px 28px">Start Camera</button>
-      <div style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:12px">Requires HTTPS</div>
-    </div>
+  <div class="finish-row">
+    <span class="finish-label">Finish:</span>
+    <button class="finish-btn" data-f="steel" title="Satin SS"></button>
+    <button class="finish-btn sel"     data-f="white" title="White"></button>
+    <button class="finish-btn"     data-f="black" title="Black"></button>
+    <button class="finish-btn"     data-f="gold"  title="Gold"></button>
+    <div class="spacer"></div>
+    <button id="shot-btn">&#x1F4F8; Screenshot</button>
   </div>
-  <button id="ar-use-btn" style="display:none">&#x2705; Add to Report</button>
+  <div id="ann-toolbar" class="tb-row">
+    <span class="finish-label">Annotate:</span>
+    <button class="ann-btn" id="ann-ruler">&#x1F4CF; Ruler</button>
+    <button class="ann-btn" id="ann-line">&#x2014; Line</button>
+    <button class="ann-btn" id="ann-text">&#x1F4DD; Text</button>
+    <input type="color" id="ann-color" value="#FFD60A" title="Colour"/>
+    <button class="ann-btn" id="ann-undo">&#x21B6;</button>
+    <button class="ann-btn" id="ann-clear">&#x1F5D1;</button>
+  </div>
 </div>
 
-<style>
-.ar-hbtn{padding:8px 14px;border-radius:16px;background:rgba(10,10,16,0.88);color:#fff;border:1px solid rgba(255,255,255,0.22);font-size:13px;font-weight:600;cursor:pointer}
-#ar-use-btn{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:1020;background:#30D158;color:#000;border:none;padding:13px 32px;border-radius:26px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 6px 24px rgba(48,209,88,.5)}
-</style>
+<div id="err-box">
+  <div class="err-card">
+    <div class="err-icon">&#x1F4F7;</div>
+    <h2>Camera Error</h2>
+    <div id="err-name"></div>
+    <div id="err-msg"></div>
+    <div id="err-hint"></div>
+    <button id="reload-btn" onclick="location.reload()">&#x21BA; Reload</button>
+  </div>
+</div>
 
 <script>
 console.warn('Scripts "build/three.js" and "build/three.min.js" are deprecated with r150+, and will be removed with r160. Please use ES Modules or alternatives: https://threejs.org/docs/index.html#manual/en/introduction/Installation'),
@@ -335,8 +161,51 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
 </script>
 <script>
-(function(){
-  /* ── Materials (needed for 3D geometry) ── */
+window.addEventListener('load', function () {
+
+
+
+
+
+  /* \u2500\u2500 HTTPS check \u2500\u2500 */
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    document.getElementById('https-warn').style.display = 'block';
+    document.getElementById('start-btn').disabled = true;
+    document.getElementById('start-btn').textContent = 'HTTPS required';
+  }
+
+  /* \u2500\u2500 Renderer \u2500\u2500 */
+  var c3d = document.getElementById('canvas');
+  var renderer = new THREE.WebGLRenderer({canvas:c3d, alpha:true, antialias:true, preserveDrawingBuffer:true});
+  renderer.setPixelRatio(window.devicePixelRatio);
+
+  var scene = new THREE.Scene();
+  var cam = new THREE.PerspectiveCamera(60, 1, 0.01, 100);
+  cam.position.set(0, 0, 1.8);
+
+  var annC = document.getElementById('ann-layer');
+  var annCtx = annC.getContext('2d');
+
+  function resize() {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    cam.aspect = window.innerWidth / window.innerHeight;
+    cam.updateProjectionMatrix();
+    var dpr = window.devicePixelRatio;
+    annC.width  = window.innerWidth  * dpr;
+    annC.height = window.innerHeight * dpr;
+    annC.style.width  = window.innerWidth  + 'px';
+    annC.style.height = window.innerHeight + 'px';
+    annCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    redrawAnn();
+  }
+  window.addEventListener('resize', resize);
+
+  /* \u2500\u2500 Lights \u2500\u2500 */
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  var dl = new THREE.DirectionalLight(0xfff8f0, 1.2); dl.position.set(4,6,5); scene.add(dl);
+  var dl2 = new THREE.DirectionalLight(0xd0e8ff, 0.45); dl2.position.set(-4,-2,3); scene.add(dl2);
+
+  /* \u2500\u2500 Materials \u2500\u2500 */
   var FIN = {
     steel:{color:0xdde1e8,metalness:0.90,roughness:0.22},
     white:{color:0xf0f0f0,metalness:0.04,roughness:0.58},
@@ -352,10 +221,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
 
 
-
-
-  /* ── Geometry functions ── */
-    var R = 0.019; // 38mm OD tube radius
+  var R = 0.019; // 38mm OD tube radius
 
   /* Escutcheon flange: back disc + chamfer lip + bore + 4 countersunk screws */
   function mkFlange(f) {
@@ -619,7 +485,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     else if(type==='lshape') r=buildLShape(finish);
     else if(type==='ubar') r=buildUBar(finish);
     else r=buildFlipUp(finish);
-    addLabel(r,LABELS[type]||type); return r;
+    return r;
   }
 
   /* \u2500\u2500 Rail registry \u2500\u2500 */
@@ -639,658 +505,407 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
      Modes: LIVE (camera feed) | FROZEN (captured photo)
   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 
+  var rails = [], selId = -1;
+  var frozen = false; // true = photo captured, editing on still frame
+  var frozenCanvas = document.createElement('canvas');
+  var frozenCtx = frozenCanvas.getContext('2d');
 
-  /* ── App logic ── */
-  
-/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-   HOME MODIFICATION REPORT BUILDER
-   \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+  /* Reusable Three.js objects */
+  var _rc = new THREE.Raycaster(), _mv = new THREE.Vector2();
+  var _eu2 = new THREE.Euler();
 
-/* \u2500\u2500 Data model \u2500\u2500 */
-var report = {
-  recs: []   // recommendation items
-};
-var recIdCounter = 0;
-
-/* \u2500\u2500 TABS \u2500\u2500 */
-document.querySelectorAll('.tab').forEach(function(tab){
-  tab.addEventListener('click', function(){
-    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-    this.classList.add('active');
-    ['info','recs','preview'].forEach(function(id){
-      document.getElementById('tab-'+id).style.display = id===tab.getAttribute('data-tab') ? '' : 'none';
-    });
-    if(tab.getAttribute('data-tab')==='preview') genPreview();
-  });
-});
-
-/* \u2500\u2500 Auto-save to localStorage \u2500\u2500 */
-function saveToStorage(){
-  try {
-    var data = {
-      orgName: v('org-name'), txName: v('tx-name'), txDesig: v('tx-desig'), txContact: v('tx-contact'),
-      reportDate: v('report-date'), visitDate: v('visit-date'),
-      clName: v('cl-name'), clDob: v('cl-dob'), clGender: v('cl-gender'), clLiving: v('cl-living'),
-      clHome: v('cl-home'), clAddr: v('cl-addr'), clDx: v('cl-dx'),
-      clRef: v('cl-ref'), clMob: v('cl-mob'), clTransfer: v('cl-transfer'),
-      clBalSit: v('cl-bal-sit'), clBalStand: v('cl-bal-stand'), clRemarks: v('cl-remarks'),
-      assessPurpose: v('assess-purpose'), areasAssessed: v('areas-assessed'),
-      generalFindings: v('general-findings'), contractorNotes: v('contractor-notes'),
-      followup: v('followup'), funding: v('funding'), disclaimer: v('disclaimer'),
-      recs: report.recs
-    };
-    localStorage.setItem('hmReport', JSON.stringify(data));
-  } catch(e){}
-}
-function loadFromStorage(){
-  try {
-    var raw = localStorage.getItem('hmReport');
-    if(!raw) return;
-    var data = JSON.parse(raw);
-    var fields = ['org-name','tx-name','tx-desig','tx-contact','report-date','visit-date',
-      'cl-name','cl-dob','cl-gender','cl-living','cl-home','cl-addr','cl-dx',
-      'cl-ref','cl-mob','cl-transfer','cl-bal-sit','cl-bal-stand','cl-remarks',
-      'assess-purpose','areas-assessed','general-findings','contractor-notes',
-      'followup','funding','disclaimer'];
-    var keys = ['orgName','txName','txDesig','txContact','reportDate','visitDate',
-      'clName','clDob','clGender','clLiving','clHome','clAddr','clDx',
-      'clRef','clMob','clTransfer','clBalSit','clBalStand','clRemarks',
-      'assessPurpose','areasAssessed','generalFindings','contractorNotes',
-      'followup','funding','disclaimer'];
-    fields.forEach(function(fid,i){ var el=document.getElementById(fid); if(el&&data[keys[i]])el.value=data[keys[i]]; });
-    if(data.recs && data.recs.length > 0){
-      report.recs = data.recs;
-      report.recs.forEach(function(rec){ addRecCard(rec); });
+  /* \u2500\u2500 Rail helpers \u2500\u2500 */
+  function trySelect(cx, cy) {
+    _mv.x = (cx / window.innerWidth) * 2 - 1;
+    _mv.y = -(cy / window.innerHeight) * 2 + 1;
+    _rc.setFromCamera(_mv, cam);
+    for (var i = 0; i < rails.length; i++) {
+      if (_rc.intersectObject(rails[i], true).length > 0) {
+        selId = i; highlight(); syncDel(); syncSliders(); return true;
+      }
     }
-  } catch(e){}
-}
-function v(id){ var el=document.getElementById(id); return el ? (el.value||el.textContent||'').trim() : ''; }
-document.querySelectorAll('input,select,textarea').forEach(function(el){
-  el.addEventListener('change', saveToStorage);
-  el.addEventListener('input',  saveToStorage);
-});
-document.getElementById('save-btn').addEventListener('click',function(){saveToStorage();this.textContent='\u2713 Saved';setTimeout(function(){document.getElementById('save-btn').textContent='\uD83D\uDCBE Save';},1800);});
-document.getElementById('report-date').value = new Date().toISOString().substr(0,10);
-
-/* \u2500\u2500 RECOMMENDATIONS \u2500\u2500 */
-function newRec(){
-  return {id: ++recIdCounter, location:'N/A', priority:'N/A',
-    issue:'', recommendation:'', justification:'', spec:'', cost:'', notes:'', photos:[]};
-}
-
-document.getElementById('add-rec-btn').addEventListener('click', function(){
-  var rec = newRec();
-  report.recs.push(rec);
-  addRecCard(rec);
-  saveToStorage();
-});
-
-function addRecCard(rec){
-  var n = document.getElementById('rec-list').children.length + 1;
-  var div = document.createElement('div');
-  div.className = 'rec-card';
-  div.id = 'rec-card-'+rec.id;
-  div.innerHTML = recCardHTML(rec, n);
-  document.getElementById('rec-list').appendChild(div);
-  bindRecCard(div, rec);
-}
-
-function recCardHTML(rec, n){
-  var locs = ['N/A','Entrance','Bathroom','Toilet','Bedroom','Living Room','Kitchen','Corridor','Staircase','Other'];
-  var locOpts = locs.map(function(l){ return '<option'+(rec.location===l?' selected':'')+'>'+l+'</option>'; }).join('');
-  return '<div class="rec-header">'
-    + '<span class="rec-num">'+n+'</span>'
-    + '<select class="rec-loc" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 9px;color:var(--text);font-size:12px">'+locOpts+'</select>'
-    + '<select class="rec-pri" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 9px;color:var(--text);font-size:12px">'
-    + '<option'+(rec.priority==='High'?' selected':'')+'>High</option>'
-    + '<option'+(rec.priority==='Medium'?' selected':'')+'>Medium</option>'
-    + '<option'+(rec.priority==='Low'?' selected':'')+'>Low</option>'
-    + '</select>'
-    + '<span class="priority-badge '+rec.priority.toLowerCase()+'">'+rec.priority+'</span>'
-    + '<button class="rec-del" title="Delete">\u00D7</button>'
-    + '</div>'
-    + '<div class="photo-row"><div class="add-photo-btn" title="Add photo">'
-    + '<span style="font-size:22px">\uD83D\uDCF8</span><span>Add Photo</span></div></div>'
-    + '<div class="field-grid" style="margin-bottom:10px">'
-    + '<div class="field"><label>Hazard / Issue Identified</label><textarea class="rec-issue" placeholder="Describe the environmental hazard or difficulty observed..." style="min-height:64px">'+esc(rec.issue)+'</textarea></div>'
-    + '<div class="field"><label>Recommended Modification</label><textarea class="rec-recommendation" placeholder="e.g. Install 300mm horizontal grab rail at toilet transfer height (approx. 700mm from floor)..." style="min-height:64px">'+esc(rec.recommendation)+'</textarea></div>'
-    + '</div>'
-    + '<div class="field-grid" style="margin-bottom:10px">'
-    + '<div class="field"><label>Clinical Justification</label><textarea class="rec-justification" placeholder="e.g. Client has impaired standing balance and requires upper limb support during sit-to-stand transfer..." style="min-height:64px">'+esc(rec.justification)+'</textarea></div>'
-    + '<div class="field"><label>Product Specification</label><textarea class="rec-spec" placeholder="e.g. White ABS ribbed grab rail, 300mm, wall flange fixing, load-rated &#x2265;120kg..." style="min-height:64px">'+esc(rec.spec)+'</textarea></div>'
-    + '</div>'
-    + '<div class="field-grid one">'
-    + '<div class="field"><label>Remarks</label><input class="rec-notes" value="'+esc(rec.notes)+'" placeholder="Additional notes..." /></div>'
-    + '</div>';
-}
-
-function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function bindRecCard(div, rec){
-  /* fields \u2192 rec data */
-  function bind(sel, key){
-    var el = div.querySelector(sel);
-    if(!el) return;
-    el.addEventListener('input', function(){ rec[key]=this.value; saveToStorage(); });
-    el.addEventListener('change',function(){ rec[key]=this.value; saveToStorage(); });
+    return false;
   }
-  bind('.rec-loc','location'); bind('.rec-pri','priority');
-  bind('.rec-issue','issue'); bind('.rec-recommendation','recommendation');
-  bind('.rec-justification','justification'); bind('.rec-spec','spec');
-  bind('.rec-notes','notes');
-
-  /* priority badge update */
-  var priSel = div.querySelector('.rec-pri');
-  var badge  = div.querySelector('.priority-badge');
-  if(priSel && badge) priSel.addEventListener('change',function(){
-    badge.textContent=this.value;
-    badge.className='priority-badge '+(this.value==="N/A"?"low":this.value.toLowerCase());
-    rec.priority=this.value; saveToStorage();
-  });
-
-  /* delete */
-  div.querySelector('.rec-del').addEventListener('click',function(){
-    report.recs = report.recs.filter(function(r){return r.id!==rec.id;});
-    div.parentNode.removeChild(div);
-    renumberRecs(); saveToStorage();
-  });
-
-  /* photos */
-  div.querySelector('.add-photo-btn').addEventListener('click',function(e){
-    openPhotoMenu(e, rec, div);
-  });
-  renderPhotos(div, rec);
-}
-
-function renumberRecs(){
-  var cards = document.getElementById('rec-list').querySelectorAll('.rec-card');
-  cards.forEach(function(c,i){ var n=c.querySelector('.rec-num'); if(n) n.textContent=i+1; });
-}
-
-/* \u2500\u2500 PHOTO MANAGEMENT \u2500\u2500 */
-var activePhotoRec = null, activePhotoDiv = null;
-
-function openPhotoMenu(e, rec, div){
-  activePhotoRec = rec; activePhotoDiv = div;
-  var menu = document.getElementById('photo-menu');
-  menu.style.display='block';
-  menu.style.left = Math.min(e.clientX, window.innerWidth-200)+'px';
-  menu.style.top  = (e.clientY+8)+'px';
-  e.stopPropagation();
-}
-document.addEventListener('click', function(){ document.getElementById('photo-menu').style.display='none'; });
-
-document.getElementById('pm-camera').addEventListener('click',function(){
-  document.getElementById('photo-menu').style.display='none';
-  openARPopup();
-});
-document.getElementById('pm-upload').addEventListener('click',function(){
-  document.getElementById('photo-menu').style.display='none';
-  document.getElementById('file-input').click();
-});
-document.getElementById('file-input').addEventListener('change',function(){
-  var file = this.files[0]; if(!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e){
-    if(activePhotoRec){ activePhotoRec.photos.push(e.target.result); renderPhotos(activePhotoDiv, activePhotoRec); saveToStorage(); }
-  };
-  reader.readAsDataURL(file);
-  this.value='';
-});
-
-function renderPhotos(div, rec){
-  var row = div.querySelector('.photo-row');
-  row.innerHTML = '';
-  (rec.photos||[]).forEach(function(src, pi){
-    var slot = document.createElement('div'); slot.className='photo-slot';
-    slot.innerHTML='<img src="'+src+'" /><button class="rm-photo" title="Remove">\u00D7</button>';
-    slot.querySelector('.rm-photo').addEventListener('click',function(e){
-      e.stopPropagation(); rec.photos.splice(pi,1); renderPhotos(div,rec); saveToStorage();
-    });
-    row.appendChild(slot);
-  });
-  var addBtn = document.createElement('div'); addBtn.className='add-photo-btn';
-  addBtn.innerHTML='<span style="font-size:22px">\uD83D\uDCF8</span><span>Add Photo</span>';
-  addBtn.addEventListener('click',function(e){ openPhotoMenu(e,rec,div); });
-  row.appendChild(addBtn);
-}
-
-/* \u2500\u2500 AR CAMERA MODAL \u2500\u2500 */
-var arStream = null, arRenderer = null, arScene = null, arCam = null;
-var arRails = [], arSelId = -1, arFrozen = false, arFrozenCanvas = document.createElement('canvas');
-
-function openAR(){
-  var modal = document.getElementById('ar-modal');
-  modal.classList.add('open');
-  modal.style.display='flex';
-  document.getElementById('ar-start-overlay').style.display='flex';
-  document.getElementById('ar-hud').style.display='none';
-  document.getElementById('ar-use-btn').style.display='none';
-  document.getElementById('ar-cap-btn').textContent='\uD83D\uDCF7 Capture';
-  arFrozen = false;
-  if(arFrozenCanvas.parentNode) arFrozenCanvas.parentNode.removeChild(arFrozenCanvas);
-}
-document.getElementById('ar-close').addEventListener('click',function(){
-  stopAR();
-  document.getElementById('ar-modal').classList.remove('open');
-  document.getElementById('ar-modal').style.display='none';
-});
-function stopAR(){
-  if(arStream){ arStream.getTracks().forEach(function(t){t.stop();}); arStream=null; }
-  if(arRenderer){ arRenderer.dispose(); arRenderer=null; arScene=null; arCam=null; arRails=[]; arSelId=-1; }
-}
-
-document.getElementById('ar-start-btn').addEventListener('click', function(){
-  var btn = this;
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ alert('Camera not available'); return; }
-  btn.textContent='Opening\u2026'; btn.disabled=true;
-  var tries=[{video:{facingMode:{exact:'environment'}},audio:false},{video:{facingMode:'environment'},audio:false},{video:true,audio:false}];
-  var ci=0;
-  function tryNext(){
-    if(ci>=tries.length){ btn.textContent='Camera error'; return; }
-    navigator.mediaDevices.getUserMedia(tries[ci++]).then(function(stream){
-      arStream = stream;
-      var vid=document.getElementById('ar-vid'); vid.srcObject=stream; vid.style.display='block';
-      vid.play().then(function(){
-        document.getElementById('ar-start-overlay').style.display='none';
-        document.getElementById('ar-hud').style.display='flex';
-        initArThreeJs();
-        /* auto-add one bar */
-        var r = buildRail(document.getElementById('ar-type-sel').value, 'white');
-        arScene.add(r); arRails.push(r); arSelId=0; arHighlight();
+  function highlight() {
+    rails.forEach(function (r, i) {
+      r.traverse(function (o) {
+        if (o.isMesh && o.material && o.material.emissive !== undefined) {
+          o.material.emissive = new THREE.Color(i === selId ? 0x002299 : 0x000000);
+          o.material.emissiveIntensity = i === selId ? 0.28 : 0;
+        }
       });
-    }).catch(function(e){ tryNext(); });
+    });
   }
-  tryNext();
-});
+  function syncDel() { document.getElementById('del-btn').disabled = (selId < 0 || rails.length === 0); }
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._t); t._t = setTimeout(function () { t.style.opacity = '0'; }, 2800);
+  }
 
-function initArThreeJs(){
-  var c = document.getElementById('ar-canvas');
-  c.width  = window.innerWidth;
-  c.height = window.innerHeight;
-  arRenderer = new THREE.WebGLRenderer({canvas:c, alpha:true, antialias:true});
-  arRenderer.setPixelRatio(window.devicePixelRatio);
-  arRenderer.setSize(window.innerWidth, window.innerHeight);
-  arScene = new THREE.Scene();
-  arCam   = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.01, 100);
-  arCam.position.set(0,0,1.8);
-  arScene.add(new THREE.AmbientLight(0xffffff,0.7));
-  var dl=new THREE.DirectionalLight(0xffffff,0.9); dl.position.set(2,4,3); arScene.add(dl);
-  var dl2=new THREE.DirectionalLight(0x8090ff,0.4); dl2.position.set(-2,-1,1); arScene.add(dl2);
-  window.addEventListener('resize',function(){
-    if(!arRenderer) return;
-    arRenderer.setSize(window.innerWidth, window.innerHeight);
-    arCam.aspect = window.innerWidth/window.innerHeight;
-    arCam.updateProjectionMatrix();
+  /* \u2500\u2500 Capture / Live toggle \u2500\u2500 */
+  function captureFrame() {
+    var vid = document.getElementById('vid');
+    var dpr = window.devicePixelRatio || 1;
+    var sw = window.innerWidth, sh = window.innerHeight;
+    frozenCanvas.width  = sw * dpr;
+    frozenCanvas.height = sh * dpr;
+    /* Draw video frame scaled to fill high-res canvas */
+    var vw = vid.videoWidth, vh = vid.videoHeight;
+    if (!vw || !vh) { toast('No frame yet \u2014 try again'); return; }
+    var scale = Math.max((sw * dpr) / vw, (sh * dpr) / vh);
+    var dw = vw * scale, dh = vh * scale;
+    var dx = ((sw * dpr) - dw) / 2, dy = ((sh * dpr) - dh) / 2;
+    frozenCtx.drawImage(vid, dx, dy, dw, dh);
+    frozen = true;
+    vid.style.display = 'none';
+    /* Show frozen canvas behind Three.js canvas */
+    frozenCanvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;';
+    document.body.insertBefore(frozenCanvas, document.getElementById('canvas'));
+    document.getElementById('cap-btn').textContent = '\uD83D\uDFE2 Live';
+    document.getElementById('cap-btn').style.background = 'rgba(48,209,88,0.85)';
+    document.getElementById('cap-btn').style.color = '#000';
+    toast('\uD83D\uDCF7 Photo captured \u2014 place bars & annotate, then Save');
+  }
+  function goLive() {
+    frozen = false;
+    var vid = document.getElementById('vid');
+    vid.style.display = 'block';
+    applyVideoZoomVisual();
+    if (frozenCanvas.parentNode) frozenCanvas.parentNode.removeChild(frozenCanvas);
+    document.getElementById('cap-btn').textContent = '\uD83D\uDCF7 Capture';
+    document.getElementById('cap-btn').style.background = 'rgba(255,255,255,0.15)';
+    document.getElementById('cap-btn').style.color = '#fff';
+    toast('Back to live camera'); if(typeof updateSendBtn!=='undefined') updateSendBtn();
+  }
+  document.getElementById('cap-btn').addEventListener('click', function () {
+    if (frozen) goLive(); else captureFrame();
   });
-  arAnimate();
-}
 
-function arAnimate(){
-  if(!arRenderer) return;
-  requestAnimationFrame(arAnimate);
-  arRails.forEach(function(r){
-    r.rotation.x=r.userData.rotX; r.rotation.y=r.userData.rotY; r.rotation.z=r.userData.rotZ;
-    r.position.x=r.userData.posX; r.position.y=r.userData.posY;
-    r.scale.setScalar(r.userData.scale);
+  /* \u2500\u2500 Touch & mouse input \u2500\u2500 */
+  var ts = { lx: 0, ly: 0, pd0: 0, pmx: 0, pmy: 0, moved: false, lastTap: 0 };
+  function ptD(t) { var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
+
+  document.getElementById('canvas').addEventListener('touchstart', function (e) {
+    if (annMode !== 'none') return; e.preventDefault(); ts.moved = false;
+    if (e.touches.length === 1) { ts.lx = e.touches[0].clientX; ts.ly = e.touches[0].clientY; }
+    else if (e.touches.length === 2) { ts.pd0 = ptD(e.touches); ts.pmx = (e.touches[0].clientX+e.touches[1].clientX)/2; ts.pmy = (e.touches[0].clientY+e.touches[1].clientY)/2; }
+  }, { passive: false });
+
+  document.getElementById('canvas').addEventListener('touchmove', function (e) {
+    if (annMode !== 'none') return; e.preventDefault(); ts.moved = true;
+    if (selId < 0) return;
+    var r = rails[selId];
+    if (e.touches.length === 1) {
+      r.userData.rotY += (e.touches[0].clientX - ts.lx) * 0.011;
+      r.userData.rotX += (e.touches[0].clientY - ts.ly) * 0.013;
+      r.userData.rotX = Math.max(-1.4, Math.min(1.4, r.userData.rotX));
+      ts.lx = e.touches[0].clientX; ts.ly = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      var dd = ptD(e.touches);
+      r.userData.scale = Math.max(0.05, Math.min(8, r.userData.scale * (dd / ts.pd0)));
+      ts.pd0 = dd;
+      var mx = (e.touches[0].clientX+e.touches[1].clientX)/2;
+      var my = (e.touches[0].clientY+e.touches[1].clientY)/2;
+      r.userData.posX += (mx - ts.pmx) * 0.0014;
+      r.userData.posY -= (my - ts.pmy) * 0.0014;
+      ts.pmx = mx; ts.pmy = my;
+    }
+    syncSliders();
+  }, { passive: false });
+
+  document.getElementById('canvas').addEventListener('touchend', function (e) {
+    if (annMode !== 'none') return; e.preventDefault();
+    syncSliders();
+    if (!ts.moved && e.changedTouches.length === 1) {
+      var t = e.changedTouches[0], now = Date.now();
+      if (now - ts.lastTap < 320 && selId >= 0 && (rails[selId].userData.type === 'ubar' || rails[selId].userData.type === 'flipup')) {
+        rails[selId].userData.folded = !rails[selId].userData.folded;
+      }
+      ts.lastTap = now;
+      trySelect(t.clientX, t.clientY);
+    }
+  }, { passive: false });
+
+  var md = false, mlx = 0, mly = 0, mm = false;
+  document.getElementById('canvas').addEventListener('mousedown', function (e) { if (annMode !== 'none') return; md = true; mlx = e.clientX; mly = e.clientY; mm = false; });
+  document.getElementById('canvas').addEventListener('mousemove', function (e) {
+    if (!md || selId < 0 || annMode !== 'none') return; mm = true;
+    var r = rails[selId];
+    r.userData.rotY += (e.clientX - mlx) * 0.011;
+    r.userData.rotX += (e.clientY - mly) * 0.013;
+    mlx = e.clientX; mly = e.clientY; syncSliders();
   });
-  arRenderer.render(arScene, arCam);
-}
+  document.getElementById('canvas').addEventListener('mouseup', function (e) {
+    md = false; syncSliders();
+    if (!mm && annMode === 'none') trySelect(e.clientX, e.clientY);
+  });
+  document.getElementById('canvas').addEventListener('wheel', function (e) {
+    if (selId < 0 || annMode !== 'none') return;
+    rails[selId].userData.scale = Math.max(0.05, Math.min(8, rails[selId].userData.scale - e.deltaY * 0.001));
+  });
 
-function arHighlight(){
-  arRails.forEach(function(r,i){
-    r.traverse(function(o){
-      if(o.isMesh && o.material && o.material.emissive !== undefined){
-        o.material.emissive=new THREE.Color(i===arSelId?0x002299:0x000000);
-        o.material.emissiveIntensity=i===arSelId?0.3:0;
+  /* \u2500\u2500 Fold animation \u2500\u2500 */
+  function tickFold(r) {
+    var ag = r.userData.armGroup; if (!ag) return;
+    var tg = r.userData.folded ? (r.userData.type === 'flipup' ? -Math.PI/2 : Math.PI/2) : 0;
+    r.userData.foldAngle += (tg - r.userData.foldAngle) * 0.10;
+    ag.rotation.z = r.userData.foldAngle;
+  }
+
+  /* \u2500\u2500 Render loop \u2500\u2500 */
+  function animate() {
+    requestAnimationFrame(animate);
+    rails.forEach(function (r) {
+      r.rotation.x = r.userData.rotX;
+      r.rotation.y = r.userData.rotY;
+      r.rotation.z = r.userData.rotZ;
+      r.position.x = r.userData.posX;
+      r.position.y = r.userData.posY;
+      r.scale.setScalar(r.userData.scale);
+      tickFold(r);
+    });
+    renderer.render(scene, cam);
+  }
+  animate();
+
+  /* \u2500\u2500 Annotation layer \u2500\u2500 */
+  var annMode = 'none', annColor = '#FFD60A', anns = [], annDraft = null, pendTxt = null;
+  function setAnnMode(m) {
+    annMode = m; annC.className = m !== 'none' ? 'drawing' : '';
+    document.querySelectorAll('.ann-btn').forEach(function (b) { b.classList.remove('active'); });
+    if (m === 'ruler') document.getElementById('ann-ruler').classList.add('active');
+    if (m === 'line')  document.getElementById('ann-line').classList.add('active');
+    if (m === 'text')  document.getElementById('ann-text').classList.add('active');
+  }
+  function redrawAnn() {
+    annCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    anns.forEach(function (a) { drawAnn(a, false); });
+    if (annDraft) drawAnn(annDraft, true);
+  }
+  function drawAnn(a, draft) {
+    annCtx.save();
+    annCtx.strokeStyle = a.color || '#FFD60A'; annCtx.fillStyle = a.color || '#FFD60A';
+    annCtx.lineWidth = draft ? 1.5 : 2.5; annCtx.setLineDash(draft ? [6,4] : []);
+    annCtx.font = 'bold 14px -apple-system,sans-serif'; annCtx.lineCap = 'round'; annCtx.lineJoin = 'round';
+    if (a.type === 'line') {
+      annCtx.beginPath(); annCtx.moveTo(a.x1, a.y1); annCtx.lineTo(a.x2, a.y2); annCtx.stroke();
+    } else if (a.type === 'ruler') {
+      var dx = a.x2-a.x1, dy = a.y2-a.y1, len = Math.sqrt(dx*dx+dy*dy);
+      if (len < 2) { annCtx.restore(); return; }
+      var nx = -dy/len, ny = dx/len, tk = 9;
+      annCtx.beginPath(); annCtx.moveTo(a.x1,a.y1); annCtx.lineTo(a.x2,a.y2); annCtx.stroke();
+      [[a.x1,a.y1],[a.x2,a.y2]].forEach(function (p) { annCtx.beginPath(); annCtx.moveTo(p[0]+nx*tk,p[1]+ny*tk); annCtx.lineTo(p[0]-nx*tk,p[1]-ny*tk); annCtx.stroke(); });
+      annCtx.setLineDash([]);
+      var ang = Math.atan2(dy,dx), sz = 11;
+      function arw(px,py,ag2){ annCtx.beginPath(); annCtx.moveTo(px,py); annCtx.lineTo(px-sz*Math.cos(ag2-0.38),py-sz*Math.sin(ag2-0.38)); annCtx.lineTo(px-sz*Math.cos(ag2+0.38),py-sz*Math.sin(ag2+0.38)); annCtx.closePath(); annCtx.fill(); }
+      arw(a.x2,a.y2,ang); arw(a.x1,a.y1,ang+Math.PI);
+      if (a.text) {
+        var mx2=(a.x1+a.x2)/2, my2=(a.y1+a.y2)/2, tw=annCtx.measureText(a.text).width, pd=7, bh=24;
+        annCtx.fillStyle='rgba(0,0,0,0.70)'; annCtx.beginPath(); annCtx.roundRect(mx2-tw/2-pd,my2-bh/2,tw+pd*2,bh,5); annCtx.fill();
+        annCtx.fillStyle=a.color||'#FFD60A'; annCtx.textAlign='center'; annCtx.textBaseline='middle'; annCtx.fillText(a.text,mx2,my2);
+      }
+    } else if (a.type === 'text') {
+      var tw2=annCtx.measureText(a.text).width, pd2=8, bh2=26;
+      annCtx.fillStyle='rgba(0,0,0,0.68)'; annCtx.beginPath(); annCtx.roundRect(a.x1-pd2,a.y1-bh2/2,tw2+pd2*2,bh2,6); annCtx.fill();
+      annCtx.fillStyle=a.color||'#FFD60A'; annCtx.textAlign='left'; annCtx.textBaseline='middle'; annCtx.fillText(a.text,a.x1,a.y1);
+    }
+    annCtx.restore();
+  }
+  function getXY(e) { if (e.touches) return {x:e.touches[0].clientX,y:e.touches[0].clientY}; return {x:e.clientX,y:e.clientY}; }
+  var annStart = null;
+  annC.addEventListener('mousedown',  aDown, {passive:false}); annC.addEventListener('touchstart', aDown, {passive:false});
+  annC.addEventListener('mousemove',  aMove, {passive:false}); annC.addEventListener('touchmove',  aMove, {passive:false});
+  annC.addEventListener('mouseup',    aUp,   {passive:false}); annC.addEventListener('touchend',   aUp,   {passive:false});
+  function aDown(e) { if(annMode==='none')return; e.preventDefault(); var p=getXY(e); if(annMode==='text'){pendTxt={x:p.x,y:p.y};showTIB(p.x,p.y);return;} annStart=p; annDraft={type:annMode,x1:p.x,y1:p.y,x2:p.x,y2:p.y,color:annColor,text:''}; }
+  function aMove(e) { if(annMode==='none'||!annStart)return; e.preventDefault(); var p=getXY(e); if(annDraft){annDraft.x2=p.x;annDraft.y2=p.y;redrawAnn();} }
+  function aUp(e) {
+    if(annMode==='none'||!annStart)return; e.preventDefault();
+    var p=e.changedTouches?{x:e.changedTouches[0].clientX,y:e.changedTouches[0].clientY}:{x:e.clientX,y:e.clientY};
+    if(annDraft){annDraft.x2=p.x;annDraft.y2=p.y;var dx=annDraft.x2-annDraft.x1,dy=annDraft.y2-annDraft.y1;
+      if(Math.sqrt(dx*dx+dy*dy)>8){var saved=JSON.parse(JSON.stringify(annDraft));anns.push(saved);annDraft=null;annStart=null;redrawAnn();if(annMode==='ruler')showRulerLbl(anns.length-1);}
+      else{annDraft=null;annStart=null;redrawAnn();}}
+  }
+  function showTIB(x,y){var box=document.getElementById('text-input-box');box.style.left=Math.min(x,window.innerWidth-240)+'px';box.style.top=Math.min(y+10,window.innerHeight-100)+'px';box.style.display='flex';document.getElementById('tib-input').value='';document.getElementById('tib-input').focus();}
+  function showRulerLbl(ai){var a=anns[ai],box=document.getElementById('text-input-box');box.style.left=Math.min((a.x1+a.x2)/2,window.innerWidth-240)+'px';box.style.top=Math.min((a.y1+a.y2)/2+14,window.innerHeight-100)+'px';box.style.display='flex';document.getElementById('tib-input').value='';document.getElementById('tib-input').placeholder='e.g. 600mm';document.getElementById('tib-input').focus();document.getElementById('tib-ok')._ai=ai;}
+  document.getElementById('tib-ok').addEventListener('click',function(){
+    var val=document.getElementById('tib-input').value.trim();
+    document.getElementById('text-input-box').style.display='none';
+    if(!val){pendTxt=null;this._ai=null;return;}
+    var ai=this._ai;
+    if(ai!=null&&anns[ai]){anns[ai].text=val;this._ai=null;}
+    else if(pendTxt){anns.push({type:'text',x1:pendTxt.x,y1:pendTxt.y,text:val,color:annColor});pendTxt=null;}
+    redrawAnn();
+  });
+  document.getElementById('tib-cancel').addEventListener('click',function(){document.getElementById('text-input-box').style.display='none';pendTxt=null;document.getElementById('tib-ok')._ai=null;});
+  document.getElementById('ann-ruler').addEventListener('click',function(){setAnnMode(annMode==='ruler'?'none':'ruler');});
+  document.getElementById('ann-line').addEventListener('click', function(){setAnnMode(annMode==='line'?'none':'line');});
+  document.getElementById('ann-text').addEventListener('click', function(){setAnnMode(annMode==='text'?'none':'text');});
+  document.getElementById('ann-color').addEventListener('input', function(){annColor=this.value;});
+  document.getElementById('ann-undo').addEventListener('click', function(){if(anns.length>0){anns.pop();redrawAnn();}});
+  document.getElementById('ann-clear').addEventListener('click',function(){anns=[];annDraft=null;redrawAnn();});
+
+  /* \u2500\u2500 Rotation sliders \u2500\u2500 */
+  function syncSliders() {
+    if (selId < 0) return; var r = rails[selId];
+    var xr=document.getElementById('x-rot'),yr=document.getElementById('y-rot'),zr=document.getElementById('z-rot');
+    if(xr)xr.value=Math.round((r.userData.rotX||0)*180/Math.PI);
+    if(yr)yr.value=Math.round((r.userData.rotY||0.12)*180/Math.PI);
+    if(zr)zr.value=Math.round((r.userData.rotZ||0)*180/Math.PI);
+  }
+  ['x-rot','y-rot','z-rot'].forEach(function(id){
+    var sl=document.getElementById(id); if(!sl)return;
+    sl.addEventListener('input',function(){
+      if(selId<0)return; var r=rails[selId]; var val=(parseFloat(this.value)||0)*Math.PI/180;
+      if(id==='x-rot')r.userData.rotX=val;
+      if(id==='y-rot')r.userData.rotY=val;
+      if(id==='z-rot')r.userData.rotZ=val;
+    });
+  });
+  var rotReset=document.getElementById('rot-reset');
+  if(rotReset){rotReset.addEventListener('click',function(){if(selId<0)return;var r=rails[selId];r.userData.rotX=0;r.userData.rotY=0.12;r.userData.rotZ=0;syncSliders();});}
+
+  /* \u2500\u2500 Error display \u2500\u2500 */
+  function showErr(name,msg){
+    var fixes={NotAllowedError:'Settings \u2192 Safari \u2192 Camera \u2192 Allow, then reload.',NotFoundError:'No camera found.',NotReadableError:'Camera in use by another app.',SecurityError:'Upload to Netlify or GitHub Pages (HTTPS required).',OverconstrainedError:'Reload \u2014 browser will try a fallback.'};
+    document.getElementById('err-box').style.display='flex';
+    document.getElementById('err-name').textContent=name||'UnknownError';
+    document.getElementById('err-msg').textContent=msg||'';
+    document.getElementById('err-hint').textContent=fixes[name]||'Reload and tap Allow when prompted.';
+  }
+
+  /* \u2500\u2500 Camera start \u2500\u2500 */
+  document.getElementById('start-btn').addEventListener('click', function () {
+    var btn = this;
+    if(location.protocol!=='https:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'){showErr('SecurityError','Camera requires HTTPS.');return;}
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){showErr('NotFoundError','mediaDevices unavailable.');return;}
+    btn.textContent='Opening camera\u2026'; btn.disabled=true;
+    var tries=[{video:{facingMode:{exact:'environment'}},audio:false},{video:{facingMode:'environment'},audio:false},{video:true,audio:false}];
+    var ci=0;
+    function tryNext(){
+      if(ci>=tries.length){showErr('NotReadableError','All modes failed.');return;}
+      navigator.mediaDevices.getUserMedia(tries[ci++]).then(function(stream){
+        var v=document.getElementById('vid'); v.srcObject=stream; v.style.transform='none';
+        v.play().then(function(){
+          document.getElementById('splash').style.display='none';
+          document.getElementById('hud').style.display='flex';
+          document.getElementById('toolbar').style.display='flex';
+          document.getElementById('ann-toolbar').style.display='flex';
+          document.getElementById('rot-panel').style.display='flex';
+          resize();
+          /* Auto-add first bar */
+          var r=buildRail('s300',curFinish); scene.add(r); rails.push(r); selId=0;
+          highlight(); syncDel(); syncSliders();
+          toast('\uD83D\uDCF7 Tap Capture to freeze frame, then annotate');
+        }).catch(function(e){showErr(e.name,e.message);});
+      }).catch(function(e){
+        if(e.name==='NotAllowedError'||e.name==='SecurityError'||e.name==='NotFoundError')showErr(e.name,e.message);
+        else tryNext();
+      });
+    }
+    tryNext();
+  });
+
+  /* \u2500\u2500 Toolbar \u2500\u2500 */
+  document.getElementById('add-btn').addEventListener('click',function(){
+    var r=buildRail(document.getElementById('type-sel').value,curFinish);
+    scene.add(r); rails.push(r); selId=rails.length-1; highlight(); syncDel(); syncSliders();
+    toast('Bar added \u2014 drag to position');
+  });
+  document.getElementById('del-btn').addEventListener('click',function(){
+    if(selId<0||rails.length===0)return;
+    scene.remove(rails[selId]); rails.splice(selId,1);
+    selId=rails.length>0?Math.min(selId,rails.length-1):-1;
+    highlight(); syncDel();
+  });
+  document.getElementById('reset-btn').addEventListener('click',function(){
+    if(selId<0)return; var r=rails[selId];
+    r.userData.rotX=0;r.userData.rotY=0.12;r.userData.rotZ=0;
+    r.userData.posX=0;r.userData.posY=0;r.userData.scale=1;
+    syncSliders(); toast('Reset');
+  });
+  document.querySelectorAll('.finish-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      curFinish=this.getAttribute('data-f');
+      document.querySelectorAll('.finish-btn').forEach(function(b){b.classList.remove('sel');});
+      this.classList.add('sel');
+      if(selId<0)return;
+      var nm=mkMat(curFinish);
+      rails[selId].traverse(function(o){if(o.isMesh&&o.material&&o.material.metalness!==undefined){o.material.dispose();o.material=nm.clone();}});
+      rails[selId].userData.finish=curFinish; highlight();
+    });
+  });
+
+  /* \u2500\u2500 Screenshot (works in both live & frozen modes) \u2500\u2500 */
+  document.getElementById('shot-btn').addEventListener('click',function(){
+    renderer.render(scene,cam);
+    var dpr = window.devicePixelRatio || 1;
+    var tc=document.createElement('canvas'); tc.width=window.innerWidth*dpr; tc.height=window.innerHeight*dpr;
+    var ctx=tc.getContext('2d');
+    if(frozen){
+      ctx.drawImage(frozenCanvas,0,0);
+    }else{
+      var v=document.getElementById('vid');
+      var vw=v.videoWidth,vh=v.videoHeight;
+      if(vw&&vh){var scale=Math.max(tc.width/vw,tc.height/vh);var dw=vw*scale,dh=vh*scale;ctx.drawImage(v,(tc.width-dw)/2,(tc.height-dh)/2,dw,dh);}
+    }
+    ctx.drawImage(document.getElementById('canvas'),0,0,tc.width,tc.height);
+    ctx.drawImage(annC,0,0,tc.width,tc.height);
+    var a=document.createElement('a'); a.download='grabbar-'+Date.now()+'.png'; a.href=tc.toDataURL('image/png'); a.click();
+    toast('\uD83D\uDDBC\uFE0F Saved to Downloads');
+  });
+
+  /* \u2500\u2500 HTTPS warn \u2500\u2500 */
+  if(location.protocol!=='https:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'){
+    document.getElementById('https-warn').style.display='block';
+    document.getElementById('start-btn').disabled=true;
+    document.getElementById('start-btn').textContent='HTTPS required';
+  }
+
+
+/* ── Send to Report Builder via postMessage ── */
+  var _sendBtn = document.getElementById('send-report-btn');
+
+  function compositePhoto(){
+    if(!frozen) return null;
+    renderer.render(scene, cam);
+    var dpr = window.devicePixelRatio || 1;
+    var tc = document.createElement('canvas');
+    tc.width = window.innerWidth * dpr; 
+    tc.height = window.innerHeight * dpr;
+    var tctx = tc.getContext('2d');
+    tctx.drawImage(frozenCanvas, 0, 0);
+    tctx.drawImage(document.getElementById('canvas'), 0, 0, tc.width, tc.height);
+    tctx.drawImage(document.getElementById('ann-layer'), 0, 0, tc.width, tc.height);
+    return tc.toDataURL('image/jpeg', 0.90);
+  }
+
+  function updateSendBtn(){
+    if(_sendBtn) _sendBtn.style.display = frozen ? 'block' : 'none';
+  }
+
+  if(_sendBtn){
+    _sendBtn.addEventListener('click', function(){
+      var dataUrl = compositePhoto();
+      if(!dataUrl) return;
+      if(window.opener){
+        /* Opened as popup from report builder */
+        window.opener.postMessage({type:'ar-photo', dataUrl: dataUrl}, '*');
+        window.close();
+      } else {
+        /* Opened standalone — store in localStorage, open report builder */
+        try { localStorage.setItem('ar-pending-photo', dataUrl); } catch(e){}
+        /* Try opening index.html in same tab or new tab */
+        var reportUrl = window.location.href.replace('ar_handrail_v25d.html','index.html');
+        var w = window.open(reportUrl, '_blank');
+        if(!w) window.location.href = reportUrl;
+        toast('\uD83D\uDCEC Photo saved \u2014 opening Report Builder\u2026');
       }
     });
-  });
-}
-
-/* AR touch controls */
-var arTs={lx:0,ly:0,pd0:0,pmx:0,pmy:0,moved:false};
-function arPtD(t){var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
-
-document.getElementById('ar-canvas').addEventListener('touchstart',function(e){
-  e.preventDefault(); arTs.moved=false;
-  if(e.touches.length===1){arTs.lx=e.touches[0].clientX;arTs.ly=e.touches[0].clientY;}
-  else if(e.touches.length===2){arTs.pd0=arPtD(e.touches);arTs.pmx=(e.touches[0].clientX+e.touches[1].clientX)/2;arTs.pmy=(e.touches[0].clientY+e.touches[1].clientY)/2;}
-},{passive:false});
-document.getElementById('ar-canvas').addEventListener('touchmove',function(e){
-  e.preventDefault(); arTs.moved=true;
-  if(arSelId<0||!arRails.length) return;
-  var r=arRails[arSelId];
-  if(e.touches.length===1){
-    r.userData.rotY+=(e.touches[0].clientX-arTs.lx)*0.012;
-    r.userData.rotX+=(e.touches[0].clientY-arTs.ly)*0.014;
-    arTs.lx=e.touches[0].clientX; arTs.ly=e.touches[0].clientY;
-  }else if(e.touches.length===2){
-    var dd=arPtD(e.touches);
-    r.userData.scale=Math.max(0.05,Math.min(8,r.userData.scale*(dd/arTs.pd0))); arTs.pd0=dd;
-    var mx=(e.touches[0].clientX+e.touches[1].clientX)/2, my=(e.touches[0].clientY+e.touches[1].clientY)/2;
-    r.userData.posX+=(mx-arTs.pmx)*0.0014; r.userData.posY-=(my-arTs.pmy)*0.0014;
-    arTs.pmx=mx; arTs.pmy=my;
   }
-},{passive:false});
-document.getElementById('ar-canvas').addEventListener('touchend',function(e){
-  e.preventDefault();
-  if(!arTs.moved && e.changedTouches.length===1){
-    var t=e.changedTouches[0]; var mv2=new THREE.Vector2((t.clientX/window.innerWidth)*2-1,-(t.clientY/window.innerHeight)*2+1);
-    var rc2=new THREE.Raycaster(); rc2.setFromCamera(mv2,arCam);
-    for(var i=0;i<arRails.length;i++){
-      if(rc2.intersectObject(arRails[i],true).length>0){arSelId=i;arHighlight();break;}
-    }
-  }
-},{passive:false});
 
-document.getElementById('ar-add-btn').addEventListener('click',function(){
-  var r=buildRail(document.getElementById('ar-type-sel').value,'white');
-  arScene.add(r); arRails.push(r); arSelId=arRails.length-1; arHighlight();
 });
-
-/* Capture in AR modal */
-document.getElementById('ar-cap-btn').addEventListener('click',function(){
-  if(arFrozen){ /* back to live */
-    arFrozen=false;
-    document.getElementById('ar-vid').style.display='block';
-    if(arFrozenCanvas.parentNode) arFrozenCanvas.parentNode.removeChild(arFrozenCanvas);
-    this.textContent='\uD83D\uDCF7 Capture';
-    document.getElementById('ar-use-btn').style.display='none';
-  }else{ /* freeze */
-    var vid=document.getElementById('ar-vid');
-    arFrozenCanvas.width=window.innerWidth; arFrozenCanvas.height=window.innerHeight;
-    var fctx=arFrozenCanvas.getContext('2d');
-    var vw=vid.videoWidth,vh=vid.videoHeight,sw=window.innerWidth,sh=window.innerHeight;
-    var sc=Math.max(sw/vw,sh/vh),dw=vw*sc,dh=vh*sc;
-    fctx.drawImage(vid,(sw-dw)/2,(sh-dh)/2,dw,dh);
-    arFrozen=true; arFrozenCanvas.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:1001;';
-    var arModal=document.getElementById('ar-modal');
-    arModal.insertBefore(arFrozenCanvas, document.getElementById('ar-canvas'));
-    vid.style.display='none';
-    this.textContent='\uD83D\uDFE2 Live';
-    document.getElementById('ar-use-btn').style.display='block';
-  }
-});
-
-/* Use photo in report */
-document.getElementById('ar-use-btn').addEventListener('click',function(){
-  if(!arRenderer || !arFrozen) return;
-  arRenderer.render(arScene, arCam);
-  var tc=document.createElement('canvas'); tc.width=window.innerWidth; tc.height=window.innerHeight;
-  var tctx=tc.getContext('2d');
-  tctx.drawImage(arFrozenCanvas,0,0);
-  tctx.drawImage(document.getElementById('ar-canvas'),0,0);
-  var dataUrl=tc.toDataURL('image/jpeg',0.88);
-  if(activePhotoRec){ activePhotoRec.photos.push(dataUrl); renderPhotos(activePhotoDiv,activePhotoRec); saveToStorage(); }
-  stopAR();
-  document.getElementById('ar-modal').classList.remove('open');
-  document.getElementById('ar-modal').style.display='none';
-});
-
-/* \u2500\u2500 PRINT / PDF \u2500\u2500 */
-function printReport(){
-    genPreview();
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/>'
-      + '<style>body{font-family:Arial,sans-serif;font-size:10pt;color:#111;margin:0;padding:0}'
-      + '@page{size:A4;margin:18mm 20mm}'
-      + 'h1{font-size:16pt;color:#1a1a2e;margin-bottom:4pt}'
-      + 'h2{font-size:12pt;color:#1a1a2e;border-bottom:1pt solid #ccc;padding-bottom:3pt;margin:14pt 0 7pt}'
-      + 'h3{font-size:11pt;color:#333;background:#f0f0f5;padding:6pt 9pt;border-left:3pt solid #1a1a2e;margin:8pt 0 4pt}'
-      + 'table{width:100%;border-collapse:collapse;font-size:9pt}'
-      + 'th{background:#f5f5f5;padding:5pt 7pt;text-align:left;border:0.5pt solid #ccc;font-weight:bold}'
-      + 'td{padding:5pt 7pt;border:0.5pt solid #ccc;vertical-align:top}'
-      + '.page-break{page-break-before:always}'
-      + 'img{height:340pt;width:auto;max-width:100%;object-fit:contain;display:block;margin:0 0 8pt;border:0.5pt solid #ccc;border-radius:4pt}'
-      + '</style></head><body>'
-      + document.getElementById('preview-content').innerHTML
-      + '</body></html>';
-    var w = window.open('','_blank','width=900,height=700');
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(function(){ w.print(); }, 600);
-  }
-  document.getElementById('print-btn').addEventListener('click',function(){ showTab('preview'); genPreview(); setTimeout(printReport,300); });
-  document.getElementById('print-btn2').addEventListener('click', printReport);
-document.getElementById('gen-preview-btn').addEventListener('click', genPreview);
-function showTab(id){ document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');if(t.getAttribute('data-tab')===id)t.classList.add('active');}); ['info','recs','preview'].forEach(function(s){document.getElementById('tab-'+s).style.display=s===id?'':'none';}); }
-
-function genPreview(){
-  var pc = document.getElementById('preview-content');
-  pc.innerHTML = buildReportHTML();
-}
-
-function buildReportHTML(){
-  var recs = report.recs;
-  var priorityColor = {High:'#c0392b', Medium:'#d35400', Low:'#27ae60'};
-
-  var recRows = recs.map(function(r,i){
-    return '<tr><td style="text-align:center;font-weight:bold">'+(i+1)+'</td>'
-      +'<td>'+esc2(r.location)+'</td>'
-      +'<td>'+esc2(r.issue)+'</td>'
-      +'<td>'+esc2(r.recommendation)+'</td>'
-      +'<td style="color:'+(priorityColor[r.priority]||'#333')+';font-weight:bold">'+esc2(r.priority)+'</td>'
-      +'</tr>';
-  }).join('');
-
-  var recDetails = recs.map(function(r,i){
-    var photos = (r.photos||[]).map(function(src){
-      return '<img src="'+src+'" class="print-rec-photo" style="max-width:200px;max-height:150px;object-fit:cover;border:0.5pt solid #ccc;border-radius:4pt;margin:3pt"/>';
-    }).join('');
-    return '<div class="page-break" style="margin-bottom:20pt">'
-      +'<h3 style="background:#f0f0f5;padding:6pt 9pt;border-left:3pt solid #1a1a2e;font-size:11pt;color:#1a1a2e">'
-      +'Finding #'+(i+1)+' &mdash; '+esc2(r.location)
-      +' <span style="color:'+(priorityColor[r.priority]||'#333')+';">['+esc2(r.priority)+' Priority]</span></h3>'
-      +(photos?'<div style="margin:6pt 0">'+photos+'</div>':'')
-      +'<table style="width:100%;border-collapse:collapse;font-size:9pt;margin-top:6pt">'
-      +'<tr><th style="width:28%;background:#f5f5f5;padding:5pt 7pt;text-align:left;border:0.5pt solid #ccc">Hazard / Issue</th>'
-      +'<td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(r.issue)+'</td></tr>'
-      +'<tr><th style="background:#f5f5f5;padding:5pt 7pt;text-align:left;border:0.5pt solid #ccc">Recommendation</th>'
-      +'<td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(r.recommendation)+'</td></tr>'
-      +'<tr><th style="background:#f5f5f5;padding:5pt 7pt;text-align:left;border:0.5pt solid #ccc">Clinical Justification</th>'
-      +'<td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(r.justification)+'</td></tr>'
-      +'<tr><th style="background:#f5f5f5;padding:5pt 7pt;text-align:left;border:0.5pt solid #ccc">Product Specification</th>'
-      +'<td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(r.spec)+'</td></tr>'
-      +(r.cost?'<tr><th style="background:#f5f5f5;padding:5pt 7pt;text-align:left;border:0.5pt solid #ccc">Est. Cost</th>'
-        +'<td style="padding:5pt 7pt;border:0.5pt solid #ccc">HK$ '+esc2(r.cost)+'</td></tr>':'')
-      +(r.notes?'<tr><th style="background:#f5f5f5;padding:5pt 7pt;text-align:left;border:0.5pt solid #ccc">Remarks</th>'
-        +'<td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(r.notes)+'</td></tr>':'')
-      +'</table></div>';
-  }).join('');
-
-  return '<div class="print-report" style="font-family:Arial,sans-serif;font-size:10pt;color:#111;line-height:1.5">'
-
-    /* \u2500\u2500 Cover header \u2500\u2500 */
-    +'<div style="border-bottom:2pt solid #1a1a2e;padding-bottom:12pt;margin-bottom:14pt">'
-    +'<h1 style="font-size:16pt;color:#1a1a2e;margin-bottom:4pt">'+(v('org-name')||'[Organisation Name]')+'</h1>'
-    +'<h2 style="font-size:13pt;color:#333;font-weight:normal;border:none;margin:0 0 8pt">Home Modification Assessment Report</h2>'
-    +'<table style="width:100%;font-size:9pt;border-collapse:collapse">'
-    +'<tr><td style="padding:2pt 0"><b>Report Date:</b> '+(v('report-date')||'')+'</td>'
-    +'<td style="padding:2pt 0"><b>Visit Date:</b> '+(v('visit-date')||'')+'</td></tr>'
-    +'<tr><td><b>Therapist:</b> '+(v('tx-name')||'')+(v('tx-desig')?' ('+v('tx-desig')+')':'')+'</td>'
-    +'<td><b>Contact:</b> '+(v('tx-contact')||'')+'</td></tr>'
-    +'</table></div>'
-
-    /* \u2500\u2500 Client info \u2500\u2500 */
-    +'<h2 style="font-size:12pt;color:#1a1a2e;border-bottom:1pt solid #ccc;padding-bottom:3pt;margin-bottom:8pt">1. Client Information</h2>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:14pt">'
-    +'<tr><td style="width:25%;padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Name / Case ID</td><td style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-name')+'</td>'
-    +'<td style="width:25%;padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Date of Birth / Age</td><td style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-dob')+'</td></tr>'
-    +'<tr><td style="padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Gender</td><td style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-gender')+'</td>'
-    +'<td style="padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Living Situation</td><td style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-living')+'</td></tr>'
-    
-    +'<tr><td style="padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Address</td><td colspan="3" style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-addr')+'</td></tr>'
-    +'<tr><td style="padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Diagnosis</td><td style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-dx')+'</td>'
-    +'<td style="padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Referral Source</td><td style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-ref')+'</td></tr>'
-    +'<tr><td style="padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Mobility Aid</td><td style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-mob')+'</td>'
-    +'<td style="padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Transfer Ability</td><td style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-transfer')+'</td></tr>'
-    +'<tr><td style="padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Balance (Sitting / Standing)</td><td colspan="3" style="padding:4pt 7pt;border:0.5pt solid #ccc">'+v('cl-bal-sit')+' / '+v('cl-bal-stand')+'</td></tr>'
-    +(v('cl-remarks')?'<tr><td style="padding:4pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Other Remarks</td><td colspan="3" style="padding:4pt 7pt;border:0.5pt solid #ccc">'+esc2(v('cl-remarks'))+'</td></tr>':'')
-    +'</table>'
-
-    /* \u2500\u2500 Assessment summary \u2500\u2500 */
-    +'<h2 style="font-size:12pt;color:#1a1a2e;border-bottom:1pt solid #ccc;padding-bottom:3pt;margin-bottom:8pt">2. Assessment Summary</h2>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:14pt">'
-    +'<tr><td style="width:25%;padding:5pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Purpose</td><td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(getAssessPurpose())+'</td></tr>'
-    +'<tr><td style="padding:5pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Areas Assessed</td><td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(getAreasAssessed())+'</td></tr>'
-    +'<tr><td style="padding:5pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">General Findings</td><td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(v('general-findings'))+'</td></tr>'
-    +'</table>'
-
-    /* \u2500\u2500 Summary table \u2500\u2500 */
-    +'<h2 style="font-size:12pt;color:#1a1a2e;border-bottom:1pt solid #ccc;padding-bottom:3pt;margin-bottom:8pt">3. Summary of Recommendations</h2>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:14pt">'
-    +'<tr style="background:#1a1a2e;color:#fff">'
-    +'<th style="padding:5pt 7pt;text-align:center">#</th>'
-    +'<th style="padding:5pt 7pt;text-align:left">Location</th>'
-    +'<th style="padding:5pt 7pt;text-align:left">Issue</th>'
-    +'<th style="padding:5pt 7pt;text-align:left">Recommendation</th>'
-    +'<th style="padding:5pt 7pt;text-align:center">Priority</th>'
-    +'</tr>'
-    +recRows
-    +'</table>'
-
-    /* \u2500\u2500 Detailed findings \u2500\u2500 */
-    +'<h2 style="font-size:12pt;color:#1a1a2e;border-bottom:1pt solid #ccc;padding-bottom:3pt;margin-bottom:8pt">4. Detailed Findings &amp; Recommendations</h2>'
-    +recDetails
-
-    /* \u2500\u2500 Additional notes \u2500\u2500 */
-    +(v('contractor-notes')||v('followup')||v('funding') ?
-      '<h2 style="font-size:12pt;color:#1a1a2e;border-bottom:1pt solid #ccc;padding-bottom:3pt;margin:16pt 0 8pt">5. Additional Notes</h2>'
-      +'<table style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:14pt">'
-      +(v('contractor-notes')?'<tr><td style="width:28%;padding:5pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Contractor / Installation Notes</td><td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(v('contractor-notes'))+'</td></tr>':'')
-      +(v('followup')?'<tr><td style="padding:5pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Follow-up</td><td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(v('followup'))+'</td></tr>':'')
-      +(v('funding')?'<tr><td style="padding:5pt 7pt;background:#f5f5f5;border:0.5pt solid #ccc;font-weight:bold">Funding / Subsidy</td><td style="padding:5pt 7pt;border:0.5pt solid #ccc">'+esc2(v('funding'))+'</td></tr>':'')
-      +'</table>' : '')
-
-    /* \u2500\u2500 Sign off \u2500\u2500 */
-    +'<div style="margin-top:30pt;border-top:0.5pt solid #ccc;padding-top:12pt;page-break-inside:avoid">'
-    +'<table style="width:100%;font-size:9pt"><tr>'
-    +'<td style="width:48%;vertical-align:top"><b>Prepared by:</b><br>'+(v('tx-name')||'___________________________')+'<br>'+(v('tx-desig')||'')+'<br>'+(v('org-name')||'')+'<br><br><b>Date:</b> '+(v('report-date')||'___________________________')+'<br><br><b>Signature:</b><br><div style="height:36pt;border-bottom:0.5pt solid #999;width:160pt">&nbsp;</div></td>'
-    +'<td style="width:4%"></td>'
-    +'<td style="vertical-align:top;font-size:8pt;color:#555;border-left:0.5pt solid #ccc;padding-left:10pt">'+esc2(v('disclaimer'))+'</td>'
-    +'</tr></table></div>'
-
-    +'</div>';
-}
-function esc2(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-/* \u2500\u2500 Load saved data on start \u2500\u2500 */
-
-  /* ── Open AR Camera as popup window ── */
-  function openARPopup(){
-    var url = 'ar_handrail_v27.html';
-    var popup = window.open(url, 'ARCamera',
-      'width=' + Math.min(screen.width, 480) +
-      ',height=' + Math.min(screen.height, 900) +
-      ',left=0,top=0,toolbar=no,menubar=no,scrollbars=no,resizable=yes');
-    if(!popup){
-      alert('Popup blocked.\nPlease allow popups for this site, then try again.');
-    }
-  }
-
-  /* ── Receive captured photo from AR popup via postMessage ── */
-  window.addEventListener('message', function(e){
-    if(!e.data || e.data.type !== 'ar-photo') return;
-    if(activePhotoRec){
-      activePhotoRec.photos.push(e.data.dataUrl);
-      renderPhotos(activePhotoDiv, activePhotoRec);
-      saveToStorage();
-      /* Switch to Recommendations tab */
-      document.querySelectorAll('.tab').forEach(function(t){
-        t.classList.remove('active');
-        if(t.getAttribute('data-tab')==='recs') t.classList.add('active');
-      });
-      ['info','recs','preview'].forEach(function(s){
-        document.getElementById('tab-'+s).style.display = s==='recs' ? '' : 'none';
-      });
-    }
-  });
-
-
-  /* ── Assessment purpose ── */
-  function togglePurposeOther(){
-    var sel = document.getElementById('assess-purpose-sel');
-    var oth = document.getElementById('assess-purpose-other');
-    oth.style.display = sel.value === '__other__' ? 'block' : 'none';
-    saveToStorage();
-  }
-  function getAssessPurpose(){
-    var sel = document.getElementById('assess-purpose-sel');
-    if(!sel) return '';
-    if(sel.value === '__other__'){
-      return document.getElementById('assess-purpose-other').value.trim();
-    }
-    return sel.value;
-  }
-
-  /* ── Areas assessed ── */
-  document.getElementById('areas-other-cb').addEventListener('change', function(){
-    document.getElementById('areas-other-text').style.display = this.checked ? 'block' : 'none';
-    saveToStorage();
-  });
-  document.querySelectorAll('.area-cb input[type=checkbox]').forEach(function(cb){
-    cb.addEventListener('change', saveToStorage);
-  });
-  document.getElementById('areas-other-text').addEventListener('input', saveToStorage);
-  function getAreasAssessed(){
-    var areas = [];
-    document.querySelectorAll('#areas-grid input[type=checkbox]:checked').forEach(function(cb){
-      if(cb.value !== '__other__') areas.push(cb.value);
-    });
-    var ot = document.getElementById('areas-other-text').value.trim();
-    if(document.getElementById('areas-other-cb').checked && ot) areas.push('Others: ' + ot);
-    return areas.join(', ');
-  }
-
-
-
-  /* ── Check for photo sent from standalone AR camera ── */
-  function checkPendingPhoto(){
-    try {
-      var pending = localStorage.getItem('ar-pending-photo');
-      if(!pending) return;
-      localStorage.removeItem('ar-pending-photo');
-      /* Show a floating notification */
-      var notif = document.createElement('div');
-      notif.id = 'pending-notif';
-      notif.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;'
-        + 'background:rgba(48,209,88,0.95);color:#000;font-size:13px;font-weight:700;'
-        + 'padding:12px 20px;border-radius:20px;box-shadow:0 6px 24px rgba(0,0,0,.4);'
-        + 'display:flex;align-items:center;gap:10px;max-width:90vw;';
-      notif.innerHTML = '\uD83D\uDCF8 AR photo ready &mdash; <span style="text-decoration:underline;cursor:pointer" id="attach-pending-btn">Attach to a recommendation</span>';
-      document.body.appendChild(notif);
-      /* Switch to recs tab */
-      document.querySelectorAll('.tab').forEach(function(t){
-        t.classList.remove('active');
-        if(t.getAttribute('data-tab')==='recs') t.classList.add('active');
-      });
-      ['info','recs','preview'].forEach(function(s){
-        document.getElementById('tab-'+s).style.display = s==='recs' ? '' : 'none';
-      });
-      document.getElementById('attach-pending-btn').addEventListener('click', function(){
-        /* Attach to first rec that has no photo, or first rec */
-        var target = report.recs.find(function(r){ return !r.photos || r.photos.length===0; }) || report.recs[0];
-        if(!target){ alert('Add a recommendation first, then re-open AR camera.'); return; }
-        target.photos = target.photos || [];
-        target.photos.push(pending);
-        var card = document.getElementById('rec-card-'+target.id);
-        if(card) renderPhotos(card, target);
-        saveToStorage();
-        notif.remove();
-      });
-      /* Auto-dismiss after 30s */
-      setTimeout(function(){ if(notif.parentNode) notif.remove(); }, 30000);
-    } catch(e){}
-  }
-
-
-  loadFromStorage();
-  checkPendingPhoto();
-/* Pre-fill today's date */
-if(!v('report-date')) document.getElementById('report-date').value=new Date().toISOString().substr(0,10);
-
-})();
 </script>
+<button id="send-report-btn" style="display:none;position:fixed;bottom:140px;left:50%;transform:translateX(-50%);z-index:30;background:#30D158;color:#000;border:none;padding:12px 26px;border-radius:24px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 6px 24px rgba(48,209,88,.5);white-space:nowrap">&#x1F4E4; Send to Report</button>
 </body>
-</html+ \'<option\'+(rec.priority===\'N/A\'?\' selected\':\'\')+\'>N/A</option>\'\n    >
+</html>
